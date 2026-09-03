@@ -207,6 +207,8 @@ a { color: inherit; }
 }
 .nav a:hover { color: var(--text); }
 .nav a[aria-current='page'] { color: var(--text); font-weight: 700; }
+.nav a.btn--primary { color: #fff; font-weight: 700; }
+[data-theme='dark'] .nav a.btn--primary { color: #17130F; }
 .nav a[aria-current='page']::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent);
 }
@@ -412,6 +414,6 @@ a { color: inherit; }
 .footer__tag { font-size: var(--text-sm); color: var(--on-ink-muted); margin-top: var(--space-4); max-width: 34ch; }
 
 /* ---------- Reveal on scroll ---------- */
-.reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
-.reveal.is-in { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } }
+.js .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+.js .reveal.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .js .reveal { opacity: 1; transform: none; } }
