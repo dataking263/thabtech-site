@@ -1,588 +1,736 @@
 #!/usr/bin/env python3
-"""Generate the ThabTech static site."""
-import pathlib
+"""Static site generator for thabtech.com redesign — 'Signal' direction."""
+import pathlib, re, html
 
 OUT = pathlib.Path(__file__).parent
 
-LOGO = """<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="4" width="30" height="4.2" fill="currentColor"/><rect x="13.9" y="8.2" width="4.2" height="19.8" fill="currentColor"/><rect x="21.4" y="14" width="9.6" height="4.2" fill="var(--accent)"/></svg>"""
+LOGO = '''<svg class="brand__mark" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+<path d="M3 5h22" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/>
+<path d="M14 5v18" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/>
+<path d="M19.5 14h6" stroke="#FF8A3D" stroke-width="2.6" stroke-linecap="square"/>
+<path d="M19.5 20.5h3.5" stroke="#FF8A3D" stroke-width="2.6" stroke-linecap="square" opacity=".55"/>
+</svg>'''
 
-ARROW = """<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg>"""
+FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E"
+           "%3Crect width='28' height='28' fill='%230A0B0D'/%3E"
+           "%3Cpath d='M4 6h20M14 6v17' stroke='%23F2F1EF' stroke-width='2.6'/%3E"
+           "%3Cpath d='M18.5 14h6' stroke='%23FF8A3D' stroke-width='2.6'/%3E%3C/svg%3E")
 
-NAV = [
-    ("index.html", "Home"),
-    ("services.html", "Consulting"),
-    ("staffing.html", "Staffing"),
-    ("about.html", "About"),
-    ("contact.html", "Contact"),
-]
+ARROW = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
-EMAIL = "support@thabtech.com"
-PHONE_D = "866-755-6007"
-PHONE_H = "tel:+18667556007"
+NAV = [("index.html", "Home"), ("services.html", "Consulting"),
+       ("staffing.html", "Staffing"), ("about.html", "About")]
+
+
+def words(text):
+    """Split a headline into per-word spans for the staggered reveal."""
+    out, i = [], 0
+    for w in text.split(" "):
+        out.append(f'<span class="rv-word"><span style="--i:{i}">{w}</span></span>')
+        i += 1
+    return " ".join(out)
 
 
 def head(title, desc, page):
-    return f"""<!DOCTYPE html>
-<html lang="en">
+    return f'''<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 <meta name="description" content="{desc}">
+<meta name="theme-color" content="#0A0B0D">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:type" content="website">
-<meta property="og:image" content="assets/hero.webp">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316171A'/%3E%3Crect x='4' y='7' width='24' height='3.4' fill='%23EAE7E2'/%3E%3Crect x='14.3' y='10.4' width='3.4' height='15' fill='%23EAE7E2'/%3E%3Crect x='20.5' y='14.8' width='7.5' height='3.4' fill='%23DE8B4C'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://api.fontshare.com">
-<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link rel="icon" href="{FAVICON}">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="style.css">
-<script>document.documentElement.classList.add('js');</script>
+<script>
+  document.documentElement.classList.add('js');
+  try {{
+    var t = localStorage.getItem('tt-theme');
+    if (t) document.documentElement.dataset.theme = t;
+  }} catch (e) {{}}
+</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 {header(page)}
-<main id="main">
-"""
+<main id="main">'''
 
 
 def header(page):
     links = "".join(
         f'<a href="{h}"{" aria-current=\"page\"" if h == page else ""}>{t}</a>'
-        for h, t in NAV[:-1]
-    )
-    return f"""<header class="header">
-  <div class="header__inner">
-    <a class="brand" href="index.html" aria-label="ThabTech home">{LOGO}<span class="brand__name">Thab<em>Tech</em></span></a>
-    <nav class="nav" id="nav" aria-label="Main">
-      {links}
-      <a class="btn btn--primary" href="contact.html">Start a conversation {ARROW}</a>
-    </nav>
-    <div class="header__actions">
-      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch color theme">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
-      </button>
-      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
-      </button>
-    </div>
+        for h, t in NAV)
+    return f'''<header class="hdr">
+<div class="hdr__in">
+  <a class="brand" href="index.html" aria-label="ThabTech home">{LOGO}<span class="brand__txt">Thab<em>Tech</em></span></a>
+  <nav class="nav" id="nav">
+    {links}
+    <a class="btn btn--primary btn--sm" href="contact.html">Start a conversation</a>
+  </nav>
+  <button class="icbtn" id="theme" type="button" aria-label="Toggle colour theme">
+    <svg class="icbtn__moon" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14 9.5A6.2 6.2 0 0 1 6.5 2a6.5 6.5 0 1 0 7.5 7.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    <svg class="icbtn__sun" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+  </button>
+  <button class="icbtn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 4.5h12M2 11.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </button>
+</div>
+</header>'''
+
+
+CTA = '''<section class="band sec">
+<div class="wrap cta rv">
+  <span class="eyebrow">Next step</span>
+  <h2>Tell us what&rsquo;s breaking, stalling, or unstaffed.</h2>
+  <p>Send a few sentences. You&rsquo;ll get a real reply from a person who has done the work &mdash; not a sequence of marketing emails.</p>
+  <div class="cta__btns">
+    <a class="btn btn--primary" href="contact.html">Start a conversation ''' + ARROW + '''</a>
+    <a class="btn btn--ghost" href="about.html#capability">Capability statement</a>
   </div>
-</header>"""
+  <div class="cta__meta">
+    <span class="mono">support@thabtech.com</span>
+    <span class="mono">866&thinsp;755&thinsp;6007</span>
+    <span class="mono">Mon&ndash;Fri&nbsp;&middot;&nbsp;9&ndash;5&nbsp;CT</span>
+  </div>
+</div>
+</section>'''
 
 
-CTA = f"""<section class="cta section">
-  <div class="wrap cta__inner">
+FOOTER = '''</main>
+<footer class="ftr">
+<div class="wrap">
+  <div class="ftr__top">
+    <div class="ftr__bl">
+      <a class="brand" href="index.html" aria-label="ThabTech home">''' + LOGO + '''<span class="brand__txt">Thab<em>Tech</em></span></a>
+      <p>An IT consulting and staffing firm. We help organisations pick the right technology and put the right people behind it.</p>
+    </div>
     <div>
-      <p class="eyebrow">Next step</p>
-      <h2 class="h-sec">Tell us what's breaking, stalling, or unstaffed.</h2>
-      <p>One call. We'll tell you honestly whether this is a consulting problem, a staffing problem, or something you can fix without us.</p>
+      <h4>Consulting</h4>
+      <ul>
+        <li><a href="services.html#cloud">Cloud &amp; infrastructure</a></li>
+        <li><a href="services.html#security">Cybersecurity &amp; compliance</a></li>
+        <li><a href="services.html#apps">Application development</a></li>
+        <li><a href="services.html#advisory">Strategy &amp; advisory</a></li>
+      </ul>
     </div>
-    <div class="btn-row">
-      <a class="btn btn--primary" href="contact.html">Start a conversation {ARROW}</a>
-      <a class="btn btn--on-ink" href="mailto:{EMAIL}">{EMAIL}</a>
+    <div>
+      <h4>Staffing</h4>
+      <ul>
+        <li><a href="staffing.html#models">Engagement models</a></li>
+        <li><a href="staffing.html#vetting">How we vet</a></li>
+        <li><a href="staffing.html#roles">Roles we fill</a></li>
+        <li><a href="staffing.html#candidates">For candidates</a></li>
+      </ul>
     </div>
-  </div>
-</section>"""
-
-
-FOOTER = f"""</main>
-<footer class="footer">
-  <div class="wrap">
-    <div class="footer__grid">
-      <div>
-        <a class="brand" href="index.html" aria-label="ThabTech home">{LOGO}<span class="brand__name">Thab<em>Tech</em></span></a>
-        <p class="footer__tag">An IT consulting and staffing firm. The right technology and the right talent, at the right time.</p>
-      </div>
-      <div>
-        <h3>Services</h3>
-        <ul>
-          <li><a href="services.html#cloud">Cloud &amp; Infrastructure</a></li>
-          <li><a href="services.html#security">Cybersecurity &amp; Compliance</a></li>
-          <li><a href="services.html#apps">Applications</a></li>
-          <li><a href="services.html#advisory">IT Strategy &amp; Advisory</a></li>
-        </ul>
-      </div>
-      <div>
-        <h3>Staffing</h3>
-        <ul>
-          <li><a href="staffing.html#models">Engagement models</a></li>
-          <li><a href="staffing.html#roles">Roles we fill</a></li>
-          <li><a href="staffing.html#vetting">How we vet</a></li>
-          <li><a href="staffing.html#candidates">For candidates</a></li>
-        </ul>
-      </div>
-      <div>
-        <h3>Company</h3>
-        <ul>
-          <li><a href="about.html">About ThabTech</a></li>
-          <li><a href="about.html#capability">Capability statement</a></li>
-          <li><a href="contact.html">Contact</a></li>
-          <li><a href="{PHONE_H}">{PHONE_D}</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer__bar">
-      <span>&copy; 2026 ThabTech LLC. All rights reserved.</span>
-      <span>Mon&ndash;Fri, 9:00 am &ndash; 5:00 pm &middot; <a href="mailto:{EMAIL}">{EMAIL}</a></span>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="about.html#capability">Capability statement</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="mailto:support@thabtech.com">support@thabtech.com</a></li>
+      </ul>
     </div>
   </div>
+  <div class="ftr__bot">
+    <span class="mono">&copy; 2026 ThabTech LLC</span>
+    <span class="mono">Dallas, Texas &middot; Serving clients nationwide</span>
+  </div>
+</div>
 </footer>
 <script>
-(function () {{
-  var root = document.documentElement;
-  var mq = window.matchMedia('(prefers-color-scheme: dark)');
-  var theme = mq.matches ? 'dark' : 'light';
-  root.setAttribute('data-theme', theme);
-  document.getElementById('theme-toggle').addEventListener('click', function () {{
-    theme = theme === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', theme);
-  }});
+(function () {
+  var doc = document.documentElement;
 
-  var nav = document.getElementById('nav');
-  var mb = document.getElementById('menu-btn');
-  mb.addEventListener('click', function () {{
-    var open = nav.getAttribute('data-open') === 'true';
-    nav.setAttribute('data-open', String(!open));
-    mb.setAttribute('aria-expanded', String(!open));
-  }});
+  /* theme */
+  var tbtn = document.getElementById('theme');
+  tbtn && tbtn.addEventListener('click', function () {
+    var next = doc.dataset.theme === 'light' ? 'dark' : 'light';
+    doc.dataset.theme = next;
+    try { localStorage.setItem('tt-theme', next); } catch (e) {}
+  });
 
-  var io = new IntersectionObserver(function (entries) {{
-    entries.forEach(function (e) {{ if (e.isIntersecting) {{ e.target.classList.add('is-in'); io.unobserve(e.target); }} }});
-  }}, {{ rootMargin: '0px 0px -8% 0px', threshold: 0.05 }});
-  document.querySelectorAll('.reveal').forEach(function (el, i) {{
-    el.style.transitionDelay = (Math.min(i % 4, 3) * 70) + 'ms';
-    io.observe(el);
-  }});
-}})();
+  /* mobile nav */
+  var burger = document.getElementById('burger'), nav = document.getElementById('nav');
+  burger && burger.addEventListener('click', function () {
+    var open = nav.classList.toggle('open');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  nav && nav.addEventListener('click', function (e) {
+    if (e.target.tagName === 'A') { nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); }
+  });
+
+  /* sticky header state */
+  var hdr = document.querySelector('.hdr');
+  var onScroll = function () { hdr.classList.toggle('stuck', window.scrollY > 8); };
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  /* scroll reveals */
+  var targets = document.querySelectorAll('.rv, .rv-s, .steps');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    targets.forEach(function (t) { io.observe(t); });
+  } else {
+    targets.forEach(function (t) { t.classList.add('in'); });
+  }
+
+  /* count-up on stat values */
+  var stats = document.querySelectorAll('[data-count]');
+  if (stats.length && 'IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var so = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var el = en.target, end = parseFloat(el.dataset.count), suffix = el.dataset.suffix || '';
+        var t0 = null, dur = 900;
+        var tick = function (ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min((ts - t0) / dur, 1);
+          var eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(end * eased) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        so.unobserve(el);
+      });
+    }, { threshold: 0.4 });
+    stats.forEach(function (s) { so.observe(s); });
+  }
+
+  /* cursor spotlight on cards */
+  if (matchMedia('(hover: hover) and (min-width: 900px)').matches) {
+    document.querySelectorAll('.card').forEach(function (c) {
+      c.addEventListener('pointermove', function (e) {
+        var r = c.getBoundingClientRect();
+        c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
+  }
+})();
 </script>
 </body>
-</html>"""
+</html>'''
 
 
-# ---------------------------------------------------------------- pages
-
-INDEX = f"""<section class="hero">
-  <div class="hero__media"><img src="assets/hero.webp" alt="A data center corridor lit by a single warm light along ranks of server cabinets." fetchpriority="high"></div>
-  <div class="hero__inner">
-    <p class="eyebrow">IT Consulting &amp; Staffing</p>
-    <h1 class="h-hero">Your systems are only as strong as the people behind them.</h1>
-    <p class="hero__lede">ThabTech modernizes the infrastructure your business runs on &mdash; and places the engineers who keep it running. One firm, both halves of the problem.</p>
-    <div class="btn-row">
-      <a class="btn btn--primary" href="contact.html">Start a conversation {ARROW}</a>
-      <a class="btn btn--on-ink" href="about.html#capability">View capability statement</a>
-    </div>
-  </div>
-  <dl class="statbar">
-    <div><dt>Consulting</dt><dd>Cloud, infrastructure, security, and application modernization</dd></div>
-    <div><dt>Staffing</dt><dd>Contract, contract-to-hire, and direct placement</dd></div>
-    <div><dt>Coverage</dt><dd>US-based engagements, remote and on-site</dd></div>
-    <div><dt>Response</dt><dd>Every inquiry answered within one business day</dd></div>
-  </dl>
-</section>
-
-<section class="section">
-  <div class="wrap split">
-    <div class="sticky-head reveal">
-      <p class="eyebrow">What we do</p>
-      <h2 class="h-sec">Two disciplines, one accountability.</h2>
-      <p class="lede mt-6">Most firms sell you a roadmap or sell you a resume. We do both, which means we can't hand off the hard part and walk away.</p>
-    </div>
-    <ol class="caplist reveal">
-      <li><span class="num">01</span>
-        <div><h3 class="h-card">Assess what you actually have</h3>
-        <p>Before recommending anything, we document the current state &mdash; systems, dependencies, licensing, risk, and the institutional knowledge that lives in one person's head.</p></div>
-      </li>
-      <li><span class="num">02</span>
-        <div><h3 class="h-card">Design for the budget in front of you</h3>
-        <p>Architecture that fits your constraints, not a vendor's product catalog. We tell you which problems are worth solving now and which can wait a fiscal year.</p></div>
-      </li>
-      <li><span class="num">03</span>
-        <div><h3 class="h-card">Deliver with people who stay accountable</h3>
-        <p>Our consultants execute the work. When you need capacity beyond the engagement, our staffing practice places vetted engineers into the same environment.</p></div>
-      </li>
-      <li><span class="num">04</span>
-        <div><h3 class="h-card">Hand over something maintainable</h3>
-        <p>Documentation, runbooks, and knowledge transfer are part of the scope &mdash; not an upsell. You should be able to fire us and still be fine.</p></div>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<section class="section" style="padding-top:0">
-  <div class="wrap cards">
-    <article class="card card--feature reveal">
-      <img src="assets/consulting.webp" alt="Graphite blocks and copper rods arranged in a precise modular grid." loading="lazy">
-      <div class="card__body">
-        <p class="eyebrow eyebrow--plain">Practice 01</p>
-        <h3 class="h-sub">IT Consulting</h3>
-        <p>Cloud migration, infrastructure optimization, cybersecurity and compliance, and application development &mdash; scoped as fixed engagements with defined deliverables.</p>
-        <div class="card__foot"><a class="arrow-link" href="services.html">Explore consulting services {ARROW}</a></div>
-      </div>
-    </article>
-    <article class="card card--feature reveal">
-      <img src="assets/staffing.webp" alt="Two colleagues reviewing work together at a monitor in a bright office." loading="lazy">
-      <div class="card__body">
-        <p class="eyebrow eyebrow--plain">Practice 02</p>
-        <h3 class="h-sub">IT Staffing</h3>
-        <p>Contract, contract-to-hire, and direct placement for technical roles. Screened by people who have done the job, not by keyword match.</p>
-        <div class="card__foot"><a class="arrow-link" href="staffing.html">Explore staffing services {ARROW}</a></div>
-      </div>
-    </article>
-  </div>
-</section>
-
-<section class="band section">
-  <div class="wrap">
-    <div style="max-width:52ch">
-      <p class="eyebrow">How engagements run</p>
-      <h2 class="h-sec">A predictable sequence, every time.</h2>
-    </div>
-    <div class="steps mt-12">
-      <div class="reveal"><span class="num">Step 01</span><h3 class="h-card">Discovery call</h3><p>30 minutes. We learn the problem, the deadline, and the constraint. No pitch deck.</p></div>
-      <div class="reveal"><span class="num">Step 02</span><h3 class="h-card">Written scope</h3><p>Deliverables, timeline, roles, and price in writing before any work begins.</p></div>
-      <div class="reveal"><span class="num">Step 03</span><h3 class="h-card">Execution</h3><p>A named lead, a weekly status, and a single escalation path. You always know where things stand.</p></div>
-      <div class="reveal"><span class="num">Step 04</span><h3 class="h-card">Handover</h3><p>Documentation, runbooks, and a transition plan. Ongoing support only if you want it.</p></div>
-    </div>
-  </div>
-</section>
-
-<div class="strip"><img src="assets/texture.webp" alt="" role="presentation" loading="lazy"></div>
-
-<section class="section">
-  <div class="wrap split">
-    <div class="sticky-head reveal">
-      <p class="eyebrow">Why ThabTech</p>
-      <h2 class="h-sec">Built to be easy to buy from.</h2>
-    </div>
-    <div class="cards reveal" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">
-      <div class="card"><h3 class="h-card">Senior people on the work</h3><p>The person who scopes your engagement is the person accountable for delivering it. No bait-and-switch staffing after signature.</p></div>
-      <div class="card"><h3 class="h-card">Procurement-ready</h3><p>Registered US entity, standard MSA and SOW templates, W-9, and insurance documentation available on request &mdash; so vendor onboarding isn't the bottleneck.</p></div>
-      <div class="card"><h3 class="h-card">Right-sized for mid-market</h3><p>Large enough to staff a real project, small enough that your account isn't rounding error. You get a direct line, not a ticket queue.</p></div>
-      <div class="card"><h3 class="h-card">Consulting and staffing under one contract</h3><p>When a project needs both a design and a body to run it, you don't manage two vendors or two invoices.</p></div>
-    </div>
-  </div>
-</section>
-
-{CTA}"""
+def hero(eyebrow, h1, lead, art=None, btns=None, pulse=None):
+    art_html = (f'<div class="hero__art"><img src="{art}" alt="" loading="eager" decoding="async"></div>'
+                if art else '')
+    pulse_html = (f'<span class="pulse"><i></i>{pulse}</span>' if pulse else '')
+    b = btns if btns is not None else (
+        f'<a class="btn btn--primary" href="contact.html">Start a conversation {ARROW}</a>'
+        f'<a class="btn btn--ghost" href="about.html#capability">Capability statement</a>')
+    return f'''<section class="hero field">
+{art_html}
+<div class="wrap">
+  <div class="hero__tags">{pulse_html}<span class="eyebrow">{eyebrow}</span></div>
+  <h1>{words(h1)}</h1>
+  <p class="lead">{lead}</p>
+  <div class="hero__cta">{b}</div>
+</div>
+</section>'''
 
 
-SERVICES = f"""<section class="hero hero--sub">
-  <div class="hero__media"><img src="assets/consulting.webp" alt=""></div>
-  <div class="hero__inner">
-    <p class="eyebrow">Consulting</p>
-    <h1 class="h-hero">Fix the infrastructure. Then make it boring.</h1>
-    <p class="hero__lede">Four practice areas, scoped as defined engagements with written deliverables. We work on fixed scope wherever the problem allows it.</p>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap">
-    <div class="cards">
-      <article class="card reveal" id="cloud">
-        <p class="eyebrow eyebrow--plain">01 &mdash; Cloud &amp; Infrastructure</p>
-        <h2 class="h-sub">Migration, optimization, and the bill that follows</h2>
-        <p>Moving to cloud is the easy half. Running it at a defensible cost is the half that gets skipped.</p>
-        <ul>
-          <li>Migration assessment and wave planning</li>
-          <li>Azure, AWS, and hybrid landing zones</li>
-          <li>Cost optimization and rightsizing reviews</li>
-          <li>Network, identity, and directory modernization</li>
-          <li>Backup, recovery, and business continuity design</li>
-        </ul>
-      </article>
-      <article class="card reveal" id="security">
-        <p class="eyebrow eyebrow--plain">02 &mdash; Cybersecurity &amp; Compliance</p>
-        <h2 class="h-sub">Controls that survive an audit and a Tuesday</h2>
-        <p>Security work that maps to a framework, gets documented, and can actually be operated by your team.</p>
-        <ul>
-          <li>Security posture and gap assessments</li>
-          <li>Identity and access management, MFA, least privilege</li>
-          <li>Endpoint, email, and network hardening</li>
-          <li>Policy, control documentation, and audit support</li>
-          <li>Incident response planning and tabletop exercises</li>
-        </ul>
-      </article>
-      <article class="card reveal" id="apps">
-        <p class="eyebrow eyebrow--plain">03 &mdash; Application Development</p>
-        <h2 class="h-sub">Build, integrate, or retire</h2>
-        <p>Custom software and integration work, plus the harder conversation about which systems should stop existing.</p>
-        <ul>
-          <li>Custom web and internal business applications</li>
-          <li>Legacy application assessment and modernization</li>
-          <li>API and system-to-system integration</li>
-          <li>Data migration and reporting pipelines</li>
-          <li>Workflow automation across existing platforms</li>
-        </ul>
-      </article>
-      <article class="card reveal" id="advisory">
-        <p class="eyebrow eyebrow--plain">04 &mdash; IT Strategy &amp; Advisory</p>
-        <h2 class="h-sub">A plan your CFO will approve</h2>
-        <p>Roadmaps tied to budget cycles and business outcomes, written so non-technical stakeholders can sign off.</p>
-        <ul>
-          <li>Current-state assessment and technology roadmap</li>
-          <li>Vendor selection and licensing review</li>
-          <li>IT budget planning and total cost analysis</li>
-          <li>Fractional IT leadership for growing teams</li>
-          <li>Project and program delivery oversight</li>
-        </ul>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="band section">
-  <div class="wrap">
-    <div style="max-width:52ch">
-      <p class="eyebrow">Engagement types</p>
-      <h2 class="h-sec">Three ways to buy consulting from us.</h2>
-    </div>
-    <div class="steps mt-12">
-      <div class="reveal"><span class="num">Type 01</span><h3 class="h-card">Assessment</h3><p>A time-boxed review producing findings, prioritized risks, and a costed recommendation. Fixed fee, fixed duration.</p></div>
-      <div class="reveal"><span class="num">Type 02</span><h3 class="h-card">Project delivery</h3><p>Defined scope, milestones, and acceptance criteria. Priced as a fixed engagement wherever the work allows it.</p></div>
-      <div class="reveal"><span class="num">Type 03</span><h3 class="h-card">Ongoing advisory</h3><p>A retained block of senior hours each month for roadmap, escalation, and vendor decisions. Cancel with notice.</p></div>
-    </div>
-  </div>
-</section>
-
-{CTA}"""
-
-
-STAFFING = f"""<section class="hero hero--sub">
-  <div class="hero__media"><img src="assets/staffing.webp" alt=""></div>
-  <div class="hero__inner">
-    <p class="eyebrow">Staffing</p>
-    <h1 class="h-hero">Screened by people who have done the job.</h1>
-    <p class="hero__lede">Technical staffing for teams that are tired of receiving five résumés that all match the keywords and none of the requirement.</p>
-  </div>
-</section>
-
-<section class="section" id="models">
-  <div class="wrap split">
-    <div class="sticky-head reveal">
-      <p class="eyebrow">Engagement models</p>
-      <h2 class="h-sec">Hire the way the work actually needs.</h2>
-      <p class="lede mt-6">Same vetting standard across all three. The difference is who carries the employment risk and for how long.</p>
-    </div>
-    <ol class="caplist reveal">
-      <li><span class="num">01</span><div><h3 class="h-card">Contract</h3><p>Short- or long-term engagements for a defined project, a backfill, or a surge in workload. We handle employment, payroll, and compliance; you direct the work.</p></div></li>
-      <li><span class="num">02</span><div><h3 class="h-card">Contract-to-hire</h3><p>A trial period on our payroll before conversion. The lowest-risk way to fill a role you can't afford to get wrong twice.</p></div></li>
-      <li><span class="num">03</span><div><h3 class="h-card">Direct placement</h3><p>Permanent hires sourced, screened, and presented for your own offer process. Fee on placement, with a replacement guarantee in writing.</p></div></li>
-      <li><span class="num">04</span><div><h3 class="h-card">Statement-of-work teams</h3><p>When you'd rather buy an outcome than manage contractors, we deliver the work under our own SOW with a named lead.</p></div></li>
-    </ol>
-  </div>
-</section>
-
-<section class="band section" id="vetting">
-  <div class="wrap">
-    <div style="max-width:52ch">
-      <p class="eyebrow">How we vet</p>
-      <h2 class="h-sec">Four filters before you ever see a résumé.</h2>
-    </div>
-    <div class="steps mt-12">
-      <div class="reveal"><span class="num">Filter 01</span><h3 class="h-card">Requirement intake</h3><p>We sit with the hiring manager to separate the must-haves from the wish list before sourcing starts.</p></div>
-      <div class="reveal"><span class="num">Filter 02</span><h3 class="h-card">Technical screen</h3><p>A working conversation about the actual stack &mdash; conducted by someone who can tell a real answer from a rehearsed one.</p></div>
-      <div class="reveal"><span class="num">Filter 03</span><h3 class="h-card">Verification</h3><p>Work authorization, references, and background checks completed before submission, not after you've made an offer.</p></div>
-      <div class="reveal"><span class="num">Filter 04</span><h3 class="h-card">Shortlist, not a stack</h3><p>You get a small number of qualified candidates with written notes on fit &mdash; including the reservations.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="roles">
-  <div class="wrap split">
-    <div class="sticky-head reveal">
-      <p class="eyebrow">Roles we fill</p>
-      <h2 class="h-sec">Technical and technical-adjacent.</h2>
-      <p class="lede mt-6">If the role sits between the business and the system, it's in scope. If we can't staff it well, we'll say so rather than take the requisition.</p>
-    </div>
-    <div class="reveal">
-      <ul class="chips">
-        <li>Cloud Engineer</li><li>DevOps / SRE</li><li>Systems Administrator</li><li>Network Engineer</li>
-        <li>Security Analyst</li><li>GRC / Compliance Analyst</li><li>Identity &amp; Access Engineer</li>
-        <li>Software Engineer</li><li>Front-End Developer</li><li>Backend / API Developer</li>
-        <li>Data Engineer</li><li>Data / BI Analyst</li><li>Database Administrator</li>
-        <li>Business Analyst</li><li>Systems Analyst</li><li>Product Owner</li>
-        <li>Project Manager</li><li>Program Manager</li><li>Scrum Master</li>
-        <li>ERP / HRIS Analyst</li><li>Workday Analyst</li><li>Salesforce Administrator</li>
-        <li>QA Engineer</li><li>Service Desk / Desktop Support</li><li>IT Manager</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="candidates" style="padding-top:0">
-  <div class="wrap">
-    <div class="cards">
-      <div class="card reveal">
-        <p class="eyebrow eyebrow--plain">For hiring managers</p>
-        <h3 class="h-sub">Send us the requirement</h3>
-        <p>Share the role, the must-haves, and the deadline. We'll come back with a sourcing plan and a realistic timeline &mdash; or tell you the market rate makes the role unfillable as written.</p>
-        <div class="card__foot"><a class="arrow-link" href="contact.html">Submit a role {ARROW}</a></div>
-      </div>
-      <div class="card reveal">
-        <p class="eyebrow eyebrow--plain">For candidates</p>
-        <h3 class="h-sub">We won't waste your time</h3>
-        <p>We tell you the client, the rate range, and the interview process up front. We don't submit your résumé anywhere without asking first, and we tell you when you're out.</p>
-        <div class="card__foot"><a class="arrow-link" href="contact.html">Send your résumé {ARROW}</a></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-{CTA}"""
-
-
-ABOUT = f"""<section class="hero hero--sub">
-  <div class="hero__media"><img src="assets/texture.webp" alt=""></div>
-  <div class="hero__inner">
-    <p class="eyebrow">About</p>
-    <h1 class="h-hero">A small firm that behaves like a large one on paper.</h1>
-    <p class="hero__lede">ThabTech LLC is a US-based IT consulting and staffing firm serving mid-market and enterprise clients.</p>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap split">
-    <div class="sticky-head reveal">
-      <p class="eyebrow">Why we exist</p>
-      <h2 class="h-sec">The gap between the plan and the people.</h2>
-    </div>
-    <div class="measure reveal">
-      <p class="lede" style="max-width:none">Technology projects rarely fail because the architecture was wrong. They fail because the plan was handed to a team that didn't have the capacity, the skills, or the context to run it.</p>
-      <p class="mt-6 body-muted">ThabTech was built around that gap. We consult on the systems &mdash; cloud, infrastructure, security, applications &mdash; and we staff the roles that keep those systems alive after the engagement ends. Because we do both, we can't recommend something we're unwilling to help you operate.</p>
-      <p class="mt-6 body-muted">We stay deliberately right-sized. Our clients get senior people, a direct phone number, and an honest answer about what a project will actually cost. Our mission is unchanged since day one: the right technology and the right talent, at the right time.</p>
-    </div>
-  </div>
-</section>
-
-<section class="band section">
-  <div class="wrap">
-    <div style="max-width:52ch">
-      <p class="eyebrow">How we operate</p>
-      <h2 class="h-sec">Four commitments we'll hold ourselves to.</h2>
-    </div>
-    <div class="steps mt-12">
-      <div class="reveal"><span class="num">01</span><h3 class="h-card">Scope in writing</h3><p>Deliverables, exclusions, and price documented before work starts. Changes go through a change order, not a surprise invoice.</p></div>
-      <div class="reveal"><span class="num">02</span><h3 class="h-card">No unnecessary work</h3><p>If a problem doesn't need our help, we'll say so. Long-term clients are worth more than a padded statement of work.</p></div>
-      <div class="reveal"><span class="num">03</span><h3 class="h-card">Documented handover</h3><p>Every engagement ends with material your team can operate from. Dependency on us is not our business model.</p></div>
-      <div class="reveal"><span class="num">04</span><h3 class="h-card">One business day</h3><p>Every inquiry gets a human response within one business day, including the ones we have to decline.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="capability">
-  <div class="wrap split">
-    <div class="sticky-head reveal">
-      <p class="eyebrow">Capability statement</p>
-      <h2 class="h-sec">Everything procurement asks for, in one place.</h2>
-      <p class="lede mt-6">Vendor onboarding shouldn't take three weeks of email. Additional documentation is available on request.</p>
-      <div class="btn-row mt-8">
-        <a class="btn btn--primary" href="mailto:{EMAIL}?subject=Capability%20statement%20request">Request full documentation {ARROW}</a>
-      </div>
-    </div>
-    <dl class="deftable reveal">
-      <div><dt>Legal name</dt><dd>ThabTech LLC</dd></div>
-      <div><dt>Entity type</dt><dd>Limited Liability Company, United States</dd></div>
-      <div><dt>Core competencies</dt><dd>IT consulting &mdash; cloud and infrastructure, cybersecurity and compliance, application development and modernization, IT strategy and advisory. Technical staffing &mdash; contract, contract-to-hire, and direct placement.</dd></div>
-      <div><dt>Service delivery</dt><dd>Remote and on-site across the United States</dd></div>
-      <div><dt>Primary NAICS</dt><dd>541512 Computer Systems Design Services &middot; 541511 Custom Computer Programming Services &middot; 541519 Other Computer Related Services &middot; 561320 Temporary Help Services &middot; 541612 Human Resources Consulting</dd></div>
-      <div><dt>Contract vehicles</dt><dd>Master Service Agreement, Statement of Work, staffing agreement, and time-and-materials. Client paper accepted for review.</dd></div>
-      <div><dt>Documentation</dt><dd>W-9, certificate of insurance, and references available on request</dd></div>
-      <div><dt>Point of contact</dt><dd><a href="mailto:{EMAIL}" style="color:var(--accent);text-decoration:none">{EMAIL}</a> &middot; <a href="{PHONE_H}" style="color:var(--accent);text-decoration:none">{PHONE_D}</a></dd></div>
-      <div><dt>Business hours</dt><dd>Monday&ndash;Friday, 9:00 am &ndash; 5:00 pm</dd></div>
-    </dl>
-  </div>
-</section>
-
-{CTA}"""
-
-
-CONTACT = f"""<section class="hero hero--sub">
-  <div class="hero__media"><img src="assets/hero.webp" alt=""></div>
-  <div class="hero__inner">
-    <p class="eyebrow">Contact</p>
-    <h1 class="h-hero">Start a conversation.</h1>
-    <p class="hero__lede">Tell us what you're trying to solve. Every inquiry gets a human response within one business day.</p>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap contact-grid">
-    <div class="reveal">
-      <h2 class="h-sub">Send us a note</h2>
-      <form class="mt-8" method="post" action="#" novalidate>
-        <div class="field">
-          <label for="name">Full name</label>
-          <input id="name" name="name" type="text" autocomplete="name" required>
-        </div>
-        <div class="field">
-          <label for="company">Company</label>
-          <input id="company" name="company" type="text" autocomplete="organization">
-        </div>
-        <div class="field">
-          <label for="email">Work email</label>
-          <input id="email" name="email" type="email" autocomplete="email" required>
-        </div>
-        <div class="field">
-          <label for="reason">What do you need?</label>
-          <select id="reason" name="reason">
-            <option>IT consulting engagement</option>
-            <option>Technical staffing &mdash; contract</option>
-            <option>Technical staffing &mdash; direct hire</option>
-            <option>I'm a candidate looking for work</option>
-            <option>Vendor onboarding / documentation</option>
-            <option>Something else</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="message">Details</label>
-          <textarea id="message" name="message" placeholder="The problem, the deadline, and the constraint."></textarea>
-        </div>
-        <button class="btn btn--primary" type="submit">Send message {ARROW}</button>
-        <p class="note mt-8">This is a design preview &mdash; the live form on thabtech.com is handled by the site's built-in contact form and delivers to {EMAIL}.</p>
-      </form>
-    </div>
-
-    <div class="reveal">
-      <h2 class="h-sub">Reach us directly</h2>
-      <ul class="contact-list mt-8">
-        <li><span class="k">Email</span><a class="v" href="mailto:{EMAIL}">{EMAIL}</a></li>
-        <li><span class="k">Phone</span><a class="v" href="{PHONE_H}">{PHONE_D}</a></li>
-        <li><span class="k">Business hours</span><span class="v">Mon&ndash;Fri, 9:00 am &ndash; 5:00 pm</span></li>
-        <li><span class="k">Entity</span><span class="v">ThabTech LLC</span></li>
-      </ul>
-      <div class="cards mt-12" style="grid-template-columns:1fr">
-        <div class="card">
-          <h3 class="h-card">Hiring managers</h3>
-          <p>Send the role description and the deadline. You'll get a sourcing plan and a realistic timeline before we start.</p>
-        </div>
-        <div class="card">
-          <h3 class="h-card">Candidates</h3>
-          <p>Attach your résumé and tell us the kind of work you want. We'll only submit you somewhere after we've asked.</p>
-        </div>
-        <div class="card">
-          <h3 class="h-card">Procurement</h3>
-          <p>Need a W-9, COI, MSA, or capability statement? Ask and it goes out the same day.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>"""
-
-
-PAGES = [
-    ("index.html", "ThabTech &mdash; IT Consulting &amp; Technical Staffing",
-     "ThabTech LLC modernizes the infrastructure your business runs on and places the engineers who keep it running. IT consulting and technical staffing under one contract.", INDEX),
-    ("services.html", "IT Consulting Services &mdash; ThabTech",
-     "Cloud and infrastructure, cybersecurity and compliance, application development, and IT strategy consulting from ThabTech LLC.", SERVICES),
-    ("staffing.html", "IT Staffing &mdash; ThabTech",
-     "Contract, contract-to-hire, and direct placement technical staffing. Candidates screened by people who have done the job.", STAFFING),
-    ("about.html", "About ThabTech &mdash; Capability Statement",
-     "ThabTech LLC is a US-based IT consulting and staffing firm. Capability statement, NAICS codes, and vendor documentation in one place.", ABOUT),
-    ("contact.html", "Contact ThabTech",
-     "Contact ThabTech LLC. Every inquiry gets a human response within one business day.", CONTACT),
+# ============================================================ HOME
+STATS = [
+    ("2", "", "Disciplines under one accountability"),
+    ("50", "+", "US states we can staff into"),
+    ("1", "", "Business day to a human reply"),
+    ("0", "", "Handoffs between advice and delivery"),
 ]
 
-for filename, title, desc, body in PAGES:
-    html = head(title, desc, filename) + body + FOOTER
-    (OUT / filename).write_text(html, encoding="utf-8")
-    print("wrote", filename)
+MARQUEE = ["Azure", "AWS", "Microsoft 365", "Entra ID", "Intune", "Terraform", "Kubernetes",
+           "Zero Trust", "SOC 2", "HIPAA", "Power BI", "Snowflake", "React", "Python", ".NET",
+           "ServiceNow", "Workday", "Okta", "SQL Server", "CI/CD"]
+
+
+def marquee():
+    grp = "".join(f'<span>{w}</span><i></i>' for w in MARQUEE)
+    return f'''<div class="marq" aria-hidden="true">
+<div class="marq__t"><div class="marq__g">{grp}</div><div class="marq__g">{grp}</div></div>
+</div>'''
+
+
+HOME_WHY = [
+    ("01", "One firm, one throat to choke",
+     "The team that recommends the architecture is the team that staffs it. No consultant blaming the contractor, no contractor blaming the plan."),
+    ("02", "Scoped before it&rsquo;s sold",
+     "Every engagement starts with a fixed-fee assessment. You see the plan, the cost and the risks before you commit to delivery."),
+    ("03", "Built to be easy to buy from",
+     "W-9, COI, MSA and NAICS codes are ready to go. We&rsquo;ve been through enough vendor onboarding portals to make yours painless."),
+    ("04", "Senior people, no bench-warming",
+     "You get practitioners who have run the systems they&rsquo;re advising on. We don&rsquo;t staff a project to keep a bench busy."),
+]
+
+HOME_STEPS = [
+    ("01", "Scoping call", "Thirty minutes. What&rsquo;s broken, what you&rsquo;ve already tried, and what &ldquo;fixed&rdquo; looks like to you."),
+    ("02", "Written assessment", "A fixed-fee document: findings, options with costs, a recommendation and the risks of doing nothing."),
+    ("03", "Delivery or placement", "We execute the plan, or we place the people who will. Weekly written status, named owner throughout."),
+    ("04", "Handover that holds", "Documentation, runbooks and a named contact. You should be able to fire us and still be fine."),
+]
+
+
+def home():
+    stats = "".join(
+        f'<div class="stat"><span class="stat__k tnum" data-count="{k}" data-suffix="{s}">{k}{s}</span>'
+        f'<span class="stat__l mono">{l}</span></div>'
+        for k, s, l in STATS)
+
+    # bento: rows 1 and 4 span two columns, creating an asymmetric rhythm
+    span = {"01": " card--wide card--say", "04": " card--wide card--say"}
+    why = "".join(
+        f'<div class="card{span.get(n, "")}"><span class="card__n">{n}</span><h3>{t}</h3><p>{d}</p></div>'
+        for n, t, d in HOME_WHY)
+
+    steps = "".join(
+        f'<div class="step"><span class="step__n">{n}</span><h3>{t}</h3><p>{d}</p></div>'
+        for n, t, d in HOME_STEPS)
+
+    return head("ThabTech — IT Consulting &amp; Technical Staffing",
+                "ThabTech is an IT consulting and staffing firm. We help organisations choose the right technology and put the right people behind it. Dallas, Texas — serving clients nationwide.",
+                "index.html") + f'''
+{hero("IT consulting &amp; technical staffing",
+      "Your systems are only as strong as the people behind them.",
+      "ThabTech pairs hands-on IT consulting with technical staffing, so the plan and the people arrive together. Cloud, security, applications and the engineers who run them.",
+      art="assets/atmo-lattice.webp",
+      pulse="Taking on new engagements")}
+
+<div class="wrap"><div class="stats rv-s">{stats}</div></div>
+
+{marquee()}
+
+<section class="sec">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">The practice</span>
+    <h2>Two disciplines. One line of accountability.</h2>
+    <p class="lead">Most organisations buy strategy from one firm and people from another, then spend the project managing the seam between them. We removed the seam.</p>
+  </div>
+  <div class="grid g-2 rv-s">
+    <article class="card pcard">
+      <div class="pcard__img"><img src="assets/atmo-machined.webp" alt="Machined precision component lit by a warm edge light" loading="lazy" decoding="async"></div>
+      <div class="pcard__body">
+        <span class="mono">Consulting</span>
+        <h3>Fix the architecture, not the symptom</h3>
+        <p>Cloud migrations, identity and access, security posture, custom applications and the IT roadmap that ties them together.</p>
+        <ul>
+          <li>Cloud &amp; infrastructure modernisation</li>
+          <li>Cybersecurity &amp; compliance readiness</li>
+          <li>Application development &amp; integration</li>
+          <li>IT strategy, roadmap &amp; vendor selection</li>
+        </ul>
+        <a class="tlink" href="services.html">Explore consulting {ARROW}</a>
+      </div>
+    </article>
+    <article class="card pcard">
+      <div class="pcard__img"><img src="assets/atmo-network.webp" alt="Constellation of connected glowing nodes across dark space" loading="lazy" decoding="async"></div>
+      <div class="pcard__body">
+        <span class="mono">Staffing</span>
+        <h3>The right engineer, not the fastest résumé</h3>
+        <p>Contract, contract-to-hire and direct placement for infrastructure, security, data and application teams.</p>
+        <ul>
+          <li>Contract &amp; contract-to-hire</li>
+          <li>Direct-hire search</li>
+          <li>Statement-of-work project teams</li>
+          <li>Technical screening you can audit</li>
+        </ul>
+        <a class="tlink" href="staffing.html">Explore staffing {ARROW}</a>
+      </div>
+    </article>
+  </div>
+</div>
+</section>
+
+<section class="band sec">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">How engagements run</span>
+    <h2>A predictable sequence, every time.</h2>
+    <p class="lead">You should never be guessing what happens next or what it will cost. Four stages, in the same order, on every engagement.</p>
+  </div>
+  <div class="steps">{steps}</div>
+</div>
+</section>
+
+<section class="sec">
+<div class="wrap">
+  <div class="head rv">
+    <span class="eyebrow">Why ThabTech</span>
+    <h2>Small enough to answer. Structured enough to trust.</h2>
+  </div>
+  <div class="bento rv-s">{why}</div>
+</div>
+</section>
+
+{CTA}
+''' + FOOTER
+
+
+# ============================================================ SERVICES
+SERVICES = [
+    ("cloud", "01", "Cloud &amp; infrastructure",
+     "Move what should move, leave what shouldn&rsquo;t, and stop paying for both.",
+     "Most cloud bills are the residue of a migration nobody finished. We assess what you&rsquo;re actually running, model the cost of each option, and execute the path you pick.",
+     ["Azure and AWS migration &amp; landing-zone design",
+      "Microsoft 365 and Entra ID tenant cleanup",
+      "Cost review and right-sizing with a written savings model",
+      "Backup, disaster recovery and business-continuity testing",
+      "Network, VPN and remote-access architecture"]),
+    ("security", "02", "Cybersecurity &amp; compliance",
+     "Get to a posture you can defend in an audit and in an incident.",
+     "We start with what an attacker would find, not with a product pitch. The output is a prioritised remediation plan with effort and cost against each item.",
+     ["Security posture assessment and gap analysis",
+      "Identity, MFA and privileged-access hardening",
+      "Zero-trust and endpoint policy rollout",
+      "SOC 2, HIPAA and cyber-insurance readiness",
+      "Incident-response runbooks and tabletop exercises"]),
+    ("apps", "03", "Application development &amp; integration",
+     "Build the thing that doesn&rsquo;t exist yet &mdash; and connect the ten that already do.",
+     "Internal tools, workflow automation, reporting layers and the integrations that stop your team from re-typing data between systems.",
+     ["Internal line-of-business applications",
+      "Workflow automation and process re-engineering",
+      "API and system-to-system integration",
+      "Reporting and dashboard layers over existing data",
+      "Legacy application assessment and modernisation"]),
+    ("advisory", "04", "IT strategy &amp; advisory",
+     "A roadmap your leadership can approve and your team can execute.",
+     "For organisations without a CIO, or with one who needs a second opinion. Vendor selection, budget planning and the honest read on what to do first.",
+     ["Technology roadmap and multi-year budget planning",
+      "Vendor evaluation, RFP support and contract review",
+      "Fractional IT leadership and steering-committee support",
+      "Due-diligence and post-acquisition IT integration",
+      "Build-versus-buy analysis"]),
+]
+
+BUY = [
+    ("Assessment", "Fixed fee", "A scoped, written deliverable in two to four weeks. Findings, options with costs, a recommendation. Yours to keep whether or not you hire us for delivery."),
+    ("Project delivery", "Fixed fee or milestone", "A defined outcome with a named owner, a written plan and weekly status. Change orders in writing before scope moves."),
+    ("Ongoing advisory", "Monthly retainer", "A set number of hours a month for architecture review, escalations and roadmap work. Cancel with thirty days&rsquo; notice."),
+]
+
+
+def services():
+    rows = ""
+    for anchor, n, title, tag, body, items in SERVICES:
+        li = "".join(f"<li>{i}</li>" for i in items)
+        rows += f'''<article class="row rv" id="{anchor}">
+  <span class="row__n">{n}</span>
+  <div>
+    <h3>{title}</h3>
+    <p style="margin-top:.7rem;color:var(--text)">{tag}</p>
+    <p style="margin-top:.7rem">{body}</p>
+  </div>
+  <ul class="pcard" style="border:0;background:none;padding:0;display:grid;gap:.45rem;list-style:none;margin:0">{li}</ul>
+</article>'''
+
+    buy = "".join(
+        f'<div class="card"><span class="mono">{t}</span><h3 style="margin-top:1rem">{n}</h3><p style="margin-top:.6rem">{d}</p></div>'
+        for n, t, d in BUY)
+
+    return head("IT Consulting — ThabTech",
+                "Cloud and infrastructure, cybersecurity and compliance, application development, and IT strategy. Fixed-fee assessments and defined-outcome delivery.",
+                "services.html") + f'''
+{hero("Consulting",
+      "Advice you can act on, delivered by the people who&rsquo;ll build it.",
+      "Four practice areas. Every engagement starts with a written, fixed-fee assessment, so you see the plan and the cost before you commit to delivery.",
+      art="assets/atmo-machined.webp")}
+
+<section class="sec">
+<div class="wrap">
+  <div class="head rv">
+    <span class="eyebrow">Practice areas</span>
+    <h2>What we&rsquo;re actually good at.</h2>
+  </div>
+  <div class="rows">{rows}</div>
+</div>
+</section>
+
+<section class="band sec">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">Commercials</span>
+    <h2>Three ways to buy consulting from us.</h2>
+    <p class="lead">Pick the one that matches your risk tolerance. Most clients start with an assessment and decide from there.</p>
+  </div>
+  <div class="grid g-3 rv-s">{buy}</div>
+</div>
+</section>
+
+{CTA}
+''' + FOOTER
+
+
+# ============================================================ STAFFING
+MODELS = [
+    ("Contract", "Weekly rate, no conversion fee after 1,040 hours",
+     "For surge capacity, parental-leave cover and defined projects. We carry the employment, payroll, taxes and insurance."),
+    ("Contract-to-hire", "Convert at any point on a declining fee",
+     "Try before you commit. The candidate works as our employee, and you convert them to your payroll when you&rsquo;re confident."),
+    ("Direct hire", "Percentage of first-year base, guaranteed 90 days",
+     "For permanent roles. If the placement doesn&rsquo;t last ninety days, we replace them or refund."),
+    ("SOW project team", "Fixed fee against a defined outcome",
+     "When you want the outcome rather than the headcount. We assemble and manage the team and own the deliverable."),
+]
+
+VETTING = [
+    ("01", "Technical screen by a practitioner", "Every candidate is screened by someone who has held the role. Not a keyword match against your job description."),
+    ("02", "Work-history verification", "We confirm the last two engagements directly. Titles, dates, and what they actually owned versus what the résumé claims."),
+    ("03", "Written submission summary", "You get a one-page brief per candidate: strengths, gaps, rate expectation, availability and why we think it fits."),
+    ("04", "Post-placement check-ins", "Day 7, day 30 and day 90 with both sides. Problems surface while they&rsquo;re still cheap to fix."),
+]
+
+ROLES = ["Cloud Engineer", "DevOps Engineer", "Site Reliability Engineer", "Systems Administrator",
+         "Network Engineer", "Security Analyst", "Security Engineer", "GRC Analyst",
+         "Identity &amp; Access Engineer", "Data Engineer", "Data Analyst", "BI Developer",
+         "Database Administrator", "Software Engineer", "Front-End Engineer", "Back-End Engineer",
+         "Full-Stack Engineer", "QA Engineer", "Business Analyst", "Systems Analyst",
+         "Project Manager", "Scrum Master", "Product Owner", "Help Desk Analyst",
+         "Desktop Support Technician", "ERP / Workday Analyst", "Salesforce Administrator",
+         "Technical Writer"]
+
+
+def staffing():
+    models = "".join(
+        f'<div class="card"><h3>{n}</h3><p class="mono" style="margin-top:.7rem;color:var(--ember)">{t}</p>'
+        f'<p style="margin-top:.8rem">{d}</p></div>'
+        for n, t, d in MODELS)
+
+    vet = "".join(
+        f'<div class="step"><span class="step__n">{n}</span><h3>{t}</h3><p>{d}</p></div>'
+        for n, t, d in VETTING)
+
+    chips = "".join(f'<span class="chip">{r}</span>' for r in ROLES)
+
+    return head("Technical Staffing — ThabTech",
+                "Contract, contract-to-hire and direct-hire technical staffing for infrastructure, security, data and application teams. Screened by practitioners, nationwide.",
+                "staffing.html") + f'''
+{hero("Staffing",
+      "The right engineer, not the fastest résumé.",
+      "Contract, contract-to-hire, direct placement and SOW project teams. Every candidate is screened by someone who has held the role, and you see our reasoning in writing.",
+      art="assets/atmo-network.webp")}
+
+<section class="sec" id="models">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">Engagement models</span>
+    <h2>Four ways to add capacity.</h2>
+    <p class="lead">Terms are written down before we send a single résumé. No surprise conversion fees, no hidden markup escalators.</p>
+  </div>
+  <div class="grid g-4 rv-s">{models}</div>
+</div>
+</section>
+
+<section class="band sec" id="vetting">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">How we vet</span>
+    <h2>Four filters before a résumé reaches you.</h2>
+    <p class="lead">A staffing firm&rsquo;s only real product is judgement. Here is ours, written down so you can hold us to it.</p>
+  </div>
+  <div class="steps">{vet}</div>
+</div>
+</section>
+
+<section class="sec" id="roles">
+<div class="wrap">
+  <div class="head rv">
+    <span class="eyebrow">Coverage</span>
+    <h2>Roles we fill.</h2>
+    <p>If a role isn&rsquo;t listed, ask. We&rsquo;d rather tell you it&rsquo;s outside our network than waste three weeks of your search.</p>
+  </div>
+  <div class="chips rv">{chips}</div>
+</div>
+</section>
+
+<section class="sec sec--tight" id="candidates">
+<div class="wrap">
+  <div class="grid g-2 rv-s">
+    <div class="card">
+      <span class="mono">For hiring managers</span>
+      <h3 style="margin-top:1rem">Send the role, get a shortlist</h3>
+      <p style="margin-top:.8rem">Give us the job description, the rate range and your must-haves. You&rsquo;ll get a small, reasoned shortlist &mdash; not a volume dump you have to filter yourself.</p>
+      <a class="tlink" style="margin-top:1.2rem" href="contact.html">Submit a role {ARROW}</a>
+    </div>
+    <div class="card">
+      <span class="mono">For candidates</span>
+      <h3 style="margin-top:1rem">We&rsquo;ll tell you the truth about the role</h3>
+      <p style="margin-top:.8rem">Real rate ranges, real conversion odds, real reason the last person left. Send a résumé and the kind of work you want next &mdash; we won&rsquo;t submit you anywhere without asking first.</p>
+      <a class="tlink" style="margin-top:1.2rem" href="contact.html">Send your résumé {ARROW}</a>
+    </div>
+  </div>
+</div>
+</section>
+
+{CTA}
+''' + FOOTER
+
+
+# ============================================================ ABOUT
+COMMITMENTS = [
+    ("01", "We put it in writing", "Scope, price, assumptions and risks. If it wasn&rsquo;t written down, it isn&rsquo;t part of the engagement &mdash; in either direction."),
+    ("02", "We tell you when it&rsquo;s not us", "If your problem is outside what we do well, we&rsquo;ll say so on the first call and point you somewhere better."),
+    ("03", "We don&rsquo;t create dependency", "Documentation and runbooks are a deliverable, not an upsell. You should be able to end the engagement and still operate."),
+    ("04", "One named owner", "Every engagement has a single person accountable for it. You always know who to call, and they answer."),
+]
+
+CAPABILITY = [
+    ("Legal name", "ThabTech LLC"),
+    ("Entity type", "Limited Liability Company &middot; United States"),
+    ("Core competencies", "IT consulting &middot; cloud &amp; infrastructure modernisation &middot; cybersecurity &amp; compliance readiness &middot; application development &amp; integration &middot; IT strategy &amp; advisory &middot; technical staffing"),
+    ("Service delivery", "Remote nationwide &middot; on-site by arrangement &middot; headquartered in Dallas, Texas"),
+    ("NAICS codes", "541512 Computer Systems Design Services &middot; 541511 Custom Computer Programming Services &middot; 541519 Other Computer Related Services &middot; 561320 Temporary Help Services &middot; 541612 Human Resources Consulting"),
+    ("Contract vehicles", "Time &amp; materials &middot; fixed fee &middot; milestone &middot; staffing MSA &middot; statement of work &middot; subcontract to prime"),
+    ("Documentation", "W-9 &middot; certificate of insurance &middot; MSA and mutual NDA templates &middot; signed vendor forms on request"),
+    ("Point of contact", "support@thabtech.com &middot; 866&thinsp;755&thinsp;6007"),
+    ("Business hours", "Monday&ndash;Friday, 9:00&nbsp;am &ndash; 5:00&nbsp;pm Central"),
+]
+
+
+def about():
+    comm = "".join(
+        f'<div class="step"><span class="step__n">{n}</span><h3>{t}</h3><p>{d}</p></div>'
+        for n, t, d in COMMITMENTS)
+
+    spec = "".join(
+        f'<div class="spec__r"><div class="spec__k">{k}</div><div class="spec__v">{v}</div></div>'
+        for k, v in CAPABILITY)
+
+    return head("About — ThabTech",
+                "ThabTech LLC is an IT consulting and technical staffing firm based in Dallas, Texas. Capability statement, NAICS codes and procurement documentation.",
+                "about.html") + f'''
+{hero("About ThabTech",
+      "The gap between the plan and the people.",
+      "ThabTech exists because that gap is where most technology projects fail &mdash; and because no one was accountable for both sides of it.",
+      art="assets/atmo-bloom.webp",
+      btns=f'<a class="btn btn--primary" href="#capability">Capability statement {ARROW}</a>'
+           f'<a class="btn btn--ghost" href="contact.html">Start a conversation</a>')}
+
+<section class="sec">
+<div class="wrap">
+  <div class="grid g-2 rv-s" style="align-items:start;gap:clamp(2rem,5vw,4rem)">
+    <div>
+      <span class="eyebrow">Why we exist</span>
+      <h2>Good advice, no one to execute it.</h2>
+    </div>
+    <div style="display:grid;gap:1.15rem">
+      <p class="lead">The pattern repeats. An organisation buys a strategy deck, agrees with it, and then discovers there&rsquo;s no one internally with the time or the skill set to carry it out. Six months later the deck is stale and the problem is worse.</p>
+      <p>The reverse happens too. A team hires three contractors quickly, without a plan for what they&rsquo;re building toward, and ends up with three different opinions and no architecture.</p>
+      <p>ThabTech was built to own both halves. We write the plan, and we can supply or place the people who execute it &mdash; so the person who has to live with the recommendation is the person who made it.</p>
+      <p>Our mission is straightforward: empower businesses with the right technology and the right talent, at the right time.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="band sec">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">How we operate</span>
+    <h2>Four commitments we&rsquo;ll be judged on.</h2>
+  </div>
+  <div class="steps">{comm}</div>
+</div>
+</section>
+
+<section class="sec" id="capability">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">Procurement</span>
+    <h2>Capability statement.</h2>
+    <p class="lead">Everything a vendor-onboarding form or bid package typically asks for, in one place. Need it as a signed PDF on your template? Ask and it&rsquo;ll be back the same day.</p>
+  </div>
+  <div class="spec rv">{spec}</div>
+</div>
+</section>
+
+{CTA}
+''' + FOOTER
+
+
+# ============================================================ CONTACT
+def contact():
+    opts = ["IT consulting engagement", "Technical staffing &mdash; contract",
+            "Technical staffing &mdash; direct hire", "I&rsquo;m a candidate looking for work",
+            "Vendor onboarding / documentation request", "Something else"]
+    options = "".join(f'<option>{o}</option>' for o in opts)
+
+    cards = [
+        ("Hiring managers", "Send the job description, the rate or salary range and your two non-negotiables. A shortlist follows, usually within a week."),
+        ("Candidates", "Send a résumé and the kind of work you want next. We won&rsquo;t submit you anywhere without asking you first."),
+        ("Procurement &amp; primes", "W-9, COI, NAICS codes and MSA templates are ready now. Send your vendor form and it comes back completed."),
+    ]
+    audience = "".join(
+        f'<div class="card"><span class="mono">{t}</span><p style="margin-top:.9rem">{d}</p></div>'
+        for t, d in cards)
+
+    return head("Contact — ThabTech",
+                "Contact ThabTech LLC for IT consulting, technical staffing, or vendor documentation. support@thabtech.com — 866 755 6007.",
+                "contact.html") + f'''
+{hero("Contact",
+      "Start a conversation.",
+      "A few sentences is enough. Tell us the situation and you&rsquo;ll get a reply from a person, normally within one business day.",
+      art="assets/atmo-lattice.webp",
+      btns=f'<a class="btn btn--primary" href="mailto:support@thabtech.com">Email support@thabtech.com {ARROW}</a>'
+           f'<a class="btn btn--ghost" href="tel:+18667556007">866 755 6007</a>')}
+
+<section class="sec">
+<div class="wrap">
+  <div class="grid g-2 rv-s" style="align-items:start;gap:clamp(2rem,5vw,3.5rem)">
+    <div>
+      <span class="eyebrow">Send a message</span>
+      <h2 style="font-size:var(--t-h3);margin-bottom:1.5rem">Tell us what you need</h2>
+      <form class="form" onsubmit="event.preventDefault();this.querySelector('.note').textContent='This is a design mockup — the live form will deliver to support@thabtech.com.';">
+        <div class="f-row">
+          <label class="field-l"><span>Name</span><input type="text" name="name" autocomplete="name" required></label>
+          <label class="field-l"><span>Company</span><input type="text" name="company" autocomplete="organization"></label>
+        </div>
+        <div class="f-row">
+          <label class="field-l"><span>Email</span><input type="email" name="email" autocomplete="email" required></label>
+          <label class="field-l"><span>Phone</span><input type="tel" name="phone" autocomplete="tel"></label>
+        </div>
+        <label class="field-l"><span>What do you need?</span><select name="topic">{options}</select></label>
+        <label class="field-l"><span>Details</span><textarea name="message" placeholder="What&rsquo;s the situation, what have you already tried, and what does a good outcome look like?" required></textarea></label>
+        <button class="btn btn--primary" type="submit" style="justify-self:start">Send message {ARROW}</button>
+        <p class="note">Mockup form &mdash; on the live site this delivers to support@thabtech.com.</p>
+      </form>
+    </div>
+    <div>
+      <span class="eyebrow">Direct</span>
+      <h2 style="font-size:var(--t-h3);margin-bottom:1.5rem">Reach us without the form</h2>
+      <div class="spec">
+        <div class="spec__r"><div class="spec__k">Email</div><div class="spec__v"><a href="mailto:support@thabtech.com" style="color:var(--ember)">support@thabtech.com</a></div></div>
+        <div class="spec__r"><div class="spec__k">Phone</div><div class="spec__v"><a href="tel:+18667556007" style="color:var(--ember)">866&thinsp;755&thinsp;6007</a></div></div>
+        <div class="spec__r"><div class="spec__k">Hours</div><div class="spec__v">Monday&ndash;Friday, 9:00&nbsp;am &ndash; 5:00&nbsp;pm Central<br><span class="muted">Closed Saturday and Sunday</span></div></div>
+        <div class="spec__r"><div class="spec__k">Based in</div><div class="spec__v">Dallas, Texas<br><span class="muted">Serving clients nationwide</span></div></div>
+        <div class="spec__r"><div class="spec__k">Response time</div><div class="spec__v">Within one business day</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="band sec sec--tight">
+<div class="wrap">
+  <div class="head rv"><span class="eyebrow">What to send</span><h2 style="font-size:var(--t-h2)">Three kinds of enquiry.</h2></div>
+  <div class="grid g-3 rv-s">{audience}</div>
+</div>
+</section>
+''' + FOOTER
+
+
+PAGES = {"index.html": home, "services.html": services,
+         "staffing.html": staffing, "about.html": about, "contact.html": contact}
+
+if __name__ == "__main__":
+    for name, fn in PAGES.items():
+        (OUT / name).write_text(fn(), encoding="utf-8")
+        print("wrote", name)
