@@ -650,3 +650,15 @@ html[data-theme="light"] .band::after { opacity: .8; }
 /* hero label row — status pill + category eyebrow share one line */
 .hero__tags { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.1rem; }
 .hero__tags .pulse, .hero__tags .eyebrow { margin-bottom: 1.5rem; }
+
+/* three practice cards on home — shorter image crop so the column reads well */
+.pcards .pcard__img { aspect-ratio: 3/2; }
+@media (min-width: 701px) and (max-width: 1000px) {
+  .pcards { grid-template-columns: repeat(2, 1fr); }
+  .pcards > .pcard:last-child { grid-column: 1 / -1; }
+  .pcards > .pcard:last-child .pcard__img { aspect-ratio: 21/9; }
+}
+/* nav breathing room now that there are five items */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .nav a { padding-left: .55rem; padding-right: .55rem; font-size: .93rem; }
+}

@@ -19,7 +19,8 @@ FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
 ARROW = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
 NAV = [("index.html", "Home"), ("services.html", "Consulting"),
-       ("staffing.html", "Staffing"), ("about.html", "About")]
+       ("ai.html", "AI &amp; Risk"), ("staffing.html", "Staffing"),
+       ("about.html", "About")]
 
 
 def words(text):
@@ -105,7 +106,7 @@ FOOTER = '''</main>
   <div class="ftr__top">
     <div class="ftr__bl">
       <a class="brand" href="index.html" aria-label="ThabTech home">''' + LOGO + '''<span class="brand__txt">Thab<em>Tech</em></span></a>
-      <p>An IT consulting and staffing firm. We help organisations pick the right technology and put the right people behind it.</p>
+      <p>An IT consulting, AI and risk advisory, and technical staffing firm. We help organisations pick the right technology, govern it properly, and put the right people behind it.</p>
     </div>
     <div>
       <h4>Consulting</h4>
@@ -114,6 +115,15 @@ FOOTER = '''</main>
         <li><a href="services.html#security">Cybersecurity &amp; compliance</a></li>
         <li><a href="services.html#apps">Application development</a></li>
         <li><a href="services.html#advisory">Strategy &amp; advisory</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>AI &amp; risk</h4>
+      <ul>
+        <li><a href="ai.html#enablement">AI enablement</a></li>
+        <li><a href="ai.html#governance">AI governance</a></li>
+        <li><a href="ai.html#model-risk">Model risk management</a></li>
+        <li><a href="ai.html#enterprise-risk">Technology &amp; enterprise risk</a></li>
       </ul>
     </div>
     <div>
@@ -240,15 +250,16 @@ def hero(eyebrow, h1, lead, art=None, btns=None, pulse=None):
 
 # ============================================================ HOME
 STATS = [
-    ("2", "", "Disciplines under one accountability"),
+    ("3", "", "Disciplines under one accountability"),
     ("50", "+", "US states we can staff into"),
     ("1", "", "Business day to a human reply"),
-    ("0", "", "Handoffs between advice and delivery"),
+    ("4", "", "Governance frameworks we build to"),
 ]
 
-MARQUEE = ["Azure", "AWS", "Microsoft 365", "Entra ID", "Intune", "Terraform", "Kubernetes",
-           "Zero Trust", "SOC 2", "HIPAA", "Power BI", "Snowflake", "React", "Python", ".NET",
-           "ServiceNow", "Workday", "Okta", "SQL Server", "CI/CD"]
+MARQUEE = ["Azure", "AWS", "Microsoft 365", "Entra ID", "Azure OpenAI", "Amazon Bedrock",
+           "NIST AI RMF", "ISO 42001", "EU AI Act", "SR 11-7", "Model Inventory", "RAG",
+           "Copilot", "LangChain", "Zero Trust", "SOC 2", "HIPAA", "Terraform", "Kubernetes",
+           "Power BI", "Snowflake", "Python", ".NET", "ServiceNow", "Workday", "Okta", "CI/CD"]
 
 
 def marquee():
@@ -293,12 +304,12 @@ def home():
         f'<div class="step"><span class="step__n">{n}</span><h3>{t}</h3><p>{d}</p></div>'
         for n, t, d in HOME_STEPS)
 
-    return head("ThabTech — IT Consulting &amp; Technical Staffing",
-                "ThabTech is an IT consulting and staffing firm. We help organisations choose the right technology and put the right people behind it. Dallas, Texas — serving clients nationwide.",
+    return head("ThabTech — IT Consulting, AI &amp; Risk, Technical Staffing",
+                "ThabTech is an IT consulting, AI and risk advisory, and technical staffing firm. Dallas, Texas — serving clients nationwide.",
                 "index.html") + f'''
-{hero("IT consulting &amp; technical staffing",
+{hero("IT consulting &middot; AI &amp; risk &middot; technical staffing",
       "Your systems are only as strong as the people behind them.",
-      "ThabTech pairs hands-on IT consulting with technical staffing, so the plan and the people arrive together. Cloud, security, applications and the engineers who run them.",
+      "ThabTech pairs hands-on IT consulting with AI and risk advisory and technical staffing, so the plan, the controls and the people arrive together.",
       art="assets/atmo-lattice.webp",
       pulse="Taking on new engagements")}
 
@@ -310,10 +321,10 @@ def home():
 <div class="wrap">
   <div class="head head--wide rv">
     <span class="eyebrow">The practice</span>
-    <h2>Two disciplines. One line of accountability.</h2>
-    <p class="lead">Most organisations buy strategy from one firm and people from another, then spend the project managing the seam between them. We removed the seam.</p>
+    <h2>Three disciplines. One line of accountability.</h2>
+    <p class="lead">Most organisations buy strategy from one firm, AI from a second and people from a third, then spend the project managing the seams between them. We removed the seams.</p>
   </div>
-  <div class="grid g-2 rv-s">
+  <div class="grid g-3 rv-s pcards">
     <article class="card pcard">
       <div class="pcard__img"><img src="assets/atmo-machined.webp" alt="Machined precision component lit by a warm edge light" loading="lazy" decoding="async"></div>
       <div class="pcard__body">
@@ -327,6 +338,21 @@ def home():
           <li>IT strategy, roadmap &amp; vendor selection</li>
         </ul>
         <a class="tlink" href="services.html">Explore consulting {ARROW}</a>
+      </div>
+    </article>
+    <article class="card pcard">
+      <div class="pcard__img"><img src="assets/atmo-gates.webp" alt="Receding row of glowing gates with a beam of light passing through each" loading="lazy" decoding="async"></div>
+      <div class="pcard__body">
+        <span class="mono">AI &amp; risk</span>
+        <h3>Put AI to work without losing control of it</h3>
+        <p>Where AI actually pays, how to deploy it safely, and the governance and model-risk structure that lets you defend it later.</p>
+        <ul>
+          <li>AI use-case triage &amp; enablement</li>
+          <li>AI governance &amp; policy build-out</li>
+          <li>Model risk management &amp; validation</li>
+          <li>Technology &amp; enterprise risk</li>
+        </ul>
+        <a class="tlink" href="ai.html">Explore AI &amp; risk {ARROW}</a>
       </div>
     </article>
     <article class="card pcard">
@@ -463,6 +489,14 @@ def services():
 </div>
 </section>
 
+<section class="sec sec--tight">
+<div class="wrap">
+  <div class="spec rv">
+    <div class="spec__r"><div class="spec__k">Also available</div><div class="spec__v">AI enablement, AI governance and model risk management run as a separate practice with its own frameworks and deliverables.<br><a class="tlink" style="margin-top:.6rem" href="ai.html">See AI &amp; risk management {ARROW}</a></div></div>
+  </div>
+</div>
+</section>
+
 {CTA}
 ''' + FOOTER
 
@@ -583,9 +617,9 @@ COMMITMENTS = [
 CAPABILITY = [
     ("Legal name", "ThabTech LLC"),
     ("Entity type", "Limited Liability Company &middot; United States"),
-    ("Core competencies", "IT consulting &middot; cloud &amp; infrastructure modernisation &middot; cybersecurity &amp; compliance readiness &middot; application development &amp; integration &middot; IT strategy &amp; advisory &middot; technical staffing"),
+    ("Core competencies", "IT consulting &middot; cloud &amp; infrastructure modernisation &middot; cybersecurity &amp; compliance readiness &middot; AI enablement &amp; AI governance &middot; model risk management &middot; technology &amp; enterprise risk &middot; application development &amp; integration &middot; IT strategy &amp; advisory &middot; technical staffing"),
     ("Service delivery", "Remote nationwide &middot; on-site by arrangement &middot; headquartered in Dallas, Texas"),
-    ("NAICS codes", "541512 Computer Systems Design Services &middot; 541511 Custom Computer Programming Services &middot; 541519 Other Computer Related Services &middot; 561320 Temporary Help Services &middot; 541612 Human Resources Consulting"),
+    ("NAICS codes", "541512 Computer Systems Design Services &middot; 541511 Custom Computer Programming Services &middot; 541519 Other Computer Related Services &middot; 541618 Other Management Consulting Services &middot; 561320 Temporary Help Services &middot; 541612 Human Resources Consulting"),
     ("Contract vehicles", "Time &amp; materials &middot; fixed fee &middot; milestone &middot; staffing MSA &middot; statement of work &middot; subcontract to prime"),
     ("Documentation", "W-9 &middot; certificate of insurance &middot; MSA and mutual NDA templates &middot; signed vendor forms on request"),
     ("Point of contact", "support@thabtech.com &middot; 866&thinsp;755&thinsp;6007"),
@@ -654,9 +688,205 @@ def about():
 ''' + FOOTER
 
 
+# ============================================================ AI & RISK
+AI_AREAS = [
+    ("enablement", "01", "AI enablement",
+     "Find the two use cases worth building &mdash; and kill the eight that aren&rsquo;t.",
+     "Most AI programmes stall because they start with a tool and hunt for a problem. We start with your processes, score candidate use cases on value against feasibility and risk, and build the short list you can actually fund.",
+     ["AI opportunity assessment across a business function",
+      "Use-case scoring: value, data readiness, risk, effort",
+      "Data-readiness review &mdash; quality, access, lineage, retention",
+      "Pilot build on Azure OpenAI, Amazon Bedrock or Copilot",
+      "Retrieval-augmented generation over your own documents",
+      "Adoption plan, training and change management"]),
+    ("governance", "02", "AI governance",
+     "The policy, the inventory and the evidence trail &mdash; before someone asks for it.",
+     "Governance is what turns a pilot into something your board, your auditor and your customers can live with. We build to the recognised frameworks so your position is defensible rather than improvised.",
+     ["AI policy, acceptable-use standards and role definitions",
+      "AI system inventory and risk tiering",
+      "NIST AI RMF alignment across Govern, Map, Measure and Manage",
+      "ISO/IEC 42001 readiness and Statement of Applicability support",
+      "EU AI Act applicability screening and transparency obligations",
+      "Third-party and vendor AI due-diligence questionnaires",
+      "Human-oversight design, logging and incident escalation paths"]),
+    ("model-risk", "03", "Model risk management",
+     "Independent challenge, documented validation and a model inventory that holds up.",
+     "For lenders, insurers and anyone whose decisions ride on a model. Built on the supervisory expectations regulated institutions are already measured against &mdash; conceptually sound development, ongoing monitoring, and outcomes analysis that back-tests against reality.",
+     ["Model inventory build-out and risk-tier assignment",
+      "Independent validation and effective-challenge reviews",
+      "Model documentation to supervisory standard",
+      "Ongoing monitoring, drift detection and outcomes analysis",
+      "Fair-lending and adverse-action explainability review",
+      "Remediation plans and issue tracking to closure"]),
+    ("enterprise-risk", "04", "Technology &amp; enterprise risk",
+     "Risk work that produces decisions, not a register nobody reads.",
+     "Risk and control assessments, issue management and the reporting layer that lets leadership see what is actually exposed. Practical process design over framework theatre.",
+     ["Technology risk and control self-assessment design",
+      "Control testing, gap analysis and remediation roadmaps",
+      "Third-party and vendor risk programme build",
+      "Issue and action management with traceable ownership",
+      "Business-continuity and operational-resilience testing",
+      "Executive and board-level risk reporting"]),
+]
+
+FRAMEWORKS = [
+    ("NIST AI RMF 1.0",
+     "Voluntary &middot; United States",
+     "Four functions &mdash; Govern, Map, Measure, Manage &mdash; give the organisation a shared vocabulary for AI risk. Voluntary and non-certifiable; the deliverable is an internal operating model.",
+     "https://airc.nist.gov/docs/NIST_AI_RMF_to_ISO_IEC_42001_Crosswalk.pdf",
+     "NIST AI RMF to ISO/IEC 42001 crosswalk"),
+    ("ISO/IEC 42001:2023",
+     "Certifiable &middot; International",
+     "The AI management-system standard. Same clause structure as ISO 27001, plus an AI-specific control catalogue in Annex A. This is the instrument you can actually be certified against.",
+     "https://airc.nist.gov/docs/NIST_AI_RMF_to_ISO_IEC_42001_Crosswalk.pdf",
+     "NIST crosswalk to ISO/IEC 42001"),
+    ("EU AI Act",
+     "Binding law &middot; European Union",
+     "Risk-tiered regulation. Transparency duties under Article&nbsp;50 have applied since 2&nbsp;August&nbsp;2026, and the high-risk obligations for Annex&nbsp;III use cases now run to 2&nbsp;December&nbsp;2027 following the AI Omnibus amendment.",
+     "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai",
+     "European Commission AI Act overview"),
+    ("SR 11-7 &amp; SR 26-2",
+     "Supervisory guidance &middot; US banking",
+     "The Federal Reserve and OCC guidance on model risk management: sound development, independent validation, and governance with real effective challenge. SR&nbsp;26-2 is the 2026 revision of the original 2011 letter.",
+     "https://www.federalreserve.gov/supervisionreg/srletters/SR2602.pdf",
+     "Federal Reserve SR 26-2, Revised Guidance on Model Risk Management"),
+]
+
+AI_SIGNALS = [
+    ("01", "&ldquo;We have twelve pilots and nothing in production&rdquo;",
+     "Usually a scoping problem, not a technology problem. Nobody defined what &lsquo;working&rsquo; meant or who owned the decision to ship."),
+    ("02", "&ldquo;Legal won&rsquo;t sign off and we don&rsquo;t know why&rdquo;",
+     "There is no policy, no inventory and no impact assessment to point at. Governance is the unblock, not the obstacle."),
+    ("03", "&ldquo;Our people are already pasting data into chatbots&rdquo;",
+     "Shadow AI is a symptom of an unmet need plus an unwritten rule. Give them a sanctioned path and a clear line they can see."),
+    ("04", "&ldquo;A regulator or a client asked how the model decides&rdquo;",
+     "This is a documentation and validation gap. It is fixable, but not on the timeline of the request unless the inventory already exists."),
+]
+
+AI_DELIVER = [
+    ("AI readiness assessment", "Fixed fee &middot; 2&ndash;4 weeks",
+     "A scored use-case short list, a data-readiness read, a risk and regulatory applicability screen, and a costed recommendation on what to build first."),
+    ("Governance build", "Fixed fee or milestone",
+     "Policy, inventory, risk tiering, impact-assessment template and oversight design, mapped to NIST AI RMF and ISO/IEC 42001 so the evidence trail exists from day one."),
+    ("Validation &amp; risk review", "Fixed fee per model or scope",
+     "Independent challenge on a model or an AI system: documentation review, testing, findings rated by severity, and a remediation plan with owners and dates."),
+]
+
+
+def ai():
+    rows = ""
+    for anchor, n, title, tag, body, items in AI_AREAS:
+        li = "".join(f"<li>{i}</li>" for i in items)
+        rows += f'''<article class="row rv" id="{anchor}">
+  <span class="row__n">{n}</span>
+  <div>
+    <h3>{title}</h3>
+    <p style="margin-top:.7rem;color:var(--text)">{tag}</p>
+    <p style="margin-top:.7rem">{body}</p>
+  </div>
+  <ul class="pcard" style="border:0;background:none;padding:0;display:grid;gap:.45rem;list-style:none;margin:0">{li}</ul>
+</article>'''
+
+    fw = "".join(
+        f'''<div class="card"><span class="mono">{scope}</span>
+<h3 style="margin-top:1rem">{name}</h3>
+<p style="margin-top:.7rem">{desc}</p>
+<a class="tlink" style="margin-top:1rem" href="{url}" target="_blank" rel="noopener">{label} {ARROW}</a></div>'''
+        for name, scope, desc, url, label in FRAMEWORKS)
+
+    signals = "".join(
+        f'''<div class="card"><span class="card__n">{n}</span><h3>{t}</h3><p>{d}</p></div>'''
+        for n, t, d in AI_SIGNALS)
+
+    deliver = "".join(
+        f'''<div class="card"><span class="mono" style="color:var(--ember)">{t}</span>
+<h3 style="margin-top:1rem">{n}</h3><p style="margin-top:.6rem">{d}</p></div>'''
+        for n, t, d in AI_DELIVER)
+
+    return head("AI &amp; Risk Management — ThabTech",
+                "AI enablement, AI governance, model risk management and technology risk. Built to NIST AI RMF, ISO/IEC 42001, the EU AI Act and US model-risk supervisory guidance.",
+                "ai.html") + f'''
+{hero("AI enablement &amp; risk management",
+      "Deploy AI you can defend in an audit.",
+      "We help you find the AI use cases worth funding, build them safely, and stand up the governance and model-risk structure that keeps them running when someone starts asking questions.",
+      art="assets/atmo-gates.webp",
+      btns=f'<a class="btn btn--primary" href="contact.html">Book an AI readiness assessment {ARROW}</a>'
+           f'<a class="btn btn--ghost" href="#frameworks">Frameworks we build to</a>')}
+
+<section class="sec">
+<div class="wrap">
+  <div class="grid g-2 rv-s" style="align-items:start;gap:clamp(2rem,5vw,4rem)">
+    <div>
+      <span class="eyebrow">The problem</span>
+      <h2>Everyone has a pilot. Almost nobody has a control.</h2>
+    </div>
+    <div style="display:grid;gap:1.15rem">
+      <p class="lead">AI moved from experiment to expectation faster than most organisations could build the scaffolding around it. The result is a familiar split: enthusiastic pilots on one side, and a legal, risk or audit function on the other that has no way to say yes.</p>
+      <p>Both halves are solvable, but not separately. A use case scoped without a risk view gets blocked late and expensively. A governance programme built without knowing what the business is actually trying to do produces a policy nobody follows.</p>
+      <p>We work both halves in the same engagement &mdash; the same team that scopes the use case writes the impact assessment, so the control design and the build assumption never drift apart.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="band sec">
+<div class="wrap">
+  <div class="head rv">
+    <span class="eyebrow">Where we usually come in</span>
+    <h2>Four sentences we hear a lot.</h2>
+  </div>
+  <div class="bento rv-s">{signals}</div>
+</div>
+</section>
+
+<section class="sec">
+<div class="wrap">
+  <div class="head rv">
+    <span class="eyebrow">Practice areas</span>
+    <h2>What this practice covers.</h2>
+  </div>
+  <div class="rows">{rows}</div>
+</div>
+</section>
+
+<section class="band sec" id="frameworks">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">Standards</span>
+    <h2>We build to the frameworks your auditor already knows.</h2>
+    <p class="lead">Nothing bespoke, nothing invented. These four are the instruments that AI and model governance consolidates around, and they are complementary rather than competing &mdash; one supplies the risk vocabulary, one makes it a certifiable management system, one makes parts of it law, and one sets the supervisory bar for models that drive decisions.</p>
+  </div>
+  <div class="grid g-2 rv-s">{fw}</div>
+</div>
+</section>
+
+<section class="sec">
+<div class="wrap">
+  <div class="head head--wide rv">
+    <span class="eyebrow">Commercials</span>
+    <h2>Three ways to start.</h2>
+    <p class="lead">Most clients begin with a readiness assessment. It is a fixed fee, it produces a document you keep, and it is deliberately structured so you can take it elsewhere if you would rather.</p>
+  </div>
+  <div class="grid g-3 rv-s">{deliver}</div>
+</div>
+</section>
+
+<section class="sec sec--tight">
+<div class="wrap">
+  <div class="spec rv">
+    <div class="spec__r"><div class="spec__k">A note on scope</div><div class="spec__v">We are a consulting and staffing firm, not a law firm and not an accredited certification body. We prepare you for certification and audit, and we work alongside your counsel &mdash; we do not issue certificates or legal opinions.<br><span class="muted">Regulatory dates and framework requirements change. Anything time-sensitive gets re-confirmed against the primary source at the start of an engagement.</span></div></div>
+  </div>
+</div>
+</section>
+
+{CTA}
+''' + FOOTER
+
+
 # ============================================================ CONTACT
 def contact():
-    opts = ["IT consulting engagement", "Technical staffing &mdash; contract",
+    opts = ["IT consulting engagement", "AI enablement or AI governance",
+            "Model risk / technology risk review", "Technical staffing &mdash; contract",
             "Technical staffing &mdash; direct hire", "I&rsquo;m a candidate looking for work",
             "Vendor onboarding / documentation request", "Something else"]
     options = "".join(f'<option>{o}</option>' for o in opts)
@@ -725,7 +955,7 @@ def contact():
 ''' + FOOTER
 
 
-PAGES = {"index.html": home, "services.html": services,
+PAGES = {"index.html": home, "services.html": services, "ai.html": ai,
          "staffing.html": staffing, "about.html": about, "contact.html": contact}
 
 if __name__ == "__main__":
