@@ -49,10 +49,8 @@ def head(title, desc, page):
 <link rel="stylesheet" href="style.css">
 <script>
   document.documentElement.classList.add('js');
-  try {{
-    var t = localStorage.getItem('tt-theme');
-    if (t) document.documentElement.dataset.theme = t;
-  }} catch (e) {{}}
+  var m = document.cookie.match(/(?:^|; )tt-theme=(dark|light)/);
+  if (m) document.documentElement.dataset.theme = m[1];
 </script>
 </head>
 <body>
@@ -152,7 +150,7 @@ FOOTER = '''</main>
   tbtn && tbtn.addEventListener('click', function () {
     var next = doc.dataset.theme === 'light' ? 'dark' : 'light';
     doc.dataset.theme = next;
-    try { localStorage.setItem('tt-theme', next); } catch (e) {}
+    document.cookie = 'tt-theme=' + next + ';path=/;max-age=31536000;SameSite=Lax';
   });
 
   /* mobile nav */
