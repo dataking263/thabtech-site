@@ -236,6 +236,7 @@ FOOTER = '''</main>
     var note = document.getElementById('fnote');
     var btn = cf.querySelector('button[type=submit]');
     var idle = note ? note.textContent : '';
+    var fellBack = false;
     cf.addEventListener('submit', function (e) {
       e.preventDefault();
       if (!cf.checkValidity()) {
@@ -263,6 +264,17 @@ FOOTER = '''</main>
           throw new Error((res.d && res.d.message) || 'send failed');
         }
       }).catch(function () {
+        /* The async path can be blocked by CORS or a network policy. A native
+           form POST is a navigation, so it is not subject to CORS — fall back
+           to it so a lead is never silently lost. */
+        if (!fellBack) {
+          fellBack = true;
+          note.textContent = 'Sending\u2026';
+          var rd = cf.querySelector('input[name=redirect]');
+          if (rd) rd.value = new URL('thanks.html', location.href).href;
+          HTMLFormElement.prototype.submit.call(cf);
+          return;
+        }
         note.className = 'note note--err';
         note.innerHTML = 'That didn\u2019t send. Please email <a href="mailto:support@thabtech.com">support@thabtech.com</a> or call <a href="tel:+18667556007">866\u2009755\u20096007</a>.';
       }).then(function () {
@@ -970,6 +982,7 @@ def contact():
         <input type="hidden" name="subject" value="New enquiry from thabtech.com">
         <input type="hidden" name="from_name" value="ThabTech website">
         <input type="checkbox" name="botcheck" class="hp" tabindex="-1" aria-hidden="true">
+        <input type="hidden" name="redirect" value="">
         <div class="f-row">
           <label class="field-l"><span>Name</span><input type="text" name="name" autocomplete="name" required></label>
           <label class="field-l"><span>Company</span><input type="text" name="company" autocomplete="organization"></label>
@@ -1008,8 +1021,35 @@ def contact():
 ''' + FOOTER
 
 
+def thanks():
+    return head("Message received — ThabTech",
+                "Your message reached ThabTech LLC. You will hear back from a person, normally within one business day.",
+                "contact.html") + f'''
+<section class="sec" style="min-height:62vh;display:grid;place-items:center;text-align:center">
+<div class="wrap" style="max-width:56ch">
+  <div class="field"></div>
+  <span class="eyebrow">&mdash;&mdash; Message received</span>
+  <h1 style="margin:.6rem 0 0">Thank you &mdash; it&rsquo;s in.</h1>
+  <p class="lede" style="margin-inline:auto">
+    Your message went straight to support@thabtech.com. You&rsquo;ll get a reply from a person,
+    normally within one business day.
+  </p>
+  <p class="note" style="max-width:44ch;margin:1.6rem auto 0;text-align:left">
+    Need it sooner? Call <a href="tel:+18667556007">866&thinsp;755&thinsp;6007</a>,
+    Monday to Friday, 9:00&thinsp;am &ndash; 5:00&thinsp;pm CT.
+  </p>
+  <div class="hero__btns" style="justify-content:center;margin-top:2rem">
+    <a class="btn btn--primary" href="index.html">Back to home {ARROW}</a>
+    <a class="btn btn--ghost" href="about.html">Capability statement</a>
+  </div>
+</div>
+</section>
+''' + FOOTER
+
+
 PAGES = {"index.html": home, "services.html": services, "ai.html": ai,
-         "staffing.html": staffing, "about.html": about, "contact.html": contact}
+         "staffing.html": staffing, "about.html": about, "contact.html": contact,
+         "thanks.html": thanks}
 
 if __name__ == "__main__":
     for name, fn in PAGES.items():

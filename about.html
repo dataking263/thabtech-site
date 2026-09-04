@@ -244,6 +244,7 @@
     var note = document.getElementById('fnote');
     var btn = cf.querySelector('button[type=submit]');
     var idle = note ? note.textContent : '';
+    var fellBack = false;
     cf.addEventListener('submit', function (e) {
       e.preventDefault();
       if (!cf.checkValidity()) {
@@ -271,6 +272,17 @@
           throw new Error((res.d && res.d.message) || 'send failed');
         }
       }).catch(function () {
+        /* The async path can be blocked by CORS or a network policy. A native
+           form POST is a navigation, so it is not subject to CORS — fall back
+           to it so a lead is never silently lost. */
+        if (!fellBack) {
+          fellBack = true;
+          note.textContent = 'Sending…';
+          var rd = cf.querySelector('input[name=redirect]');
+          if (rd) rd.value = new URL('thanks.html', location.href).href;
+          HTMLFormElement.prototype.submit.call(cf);
+          return;
+        }
         note.className = 'note note--err';
         note.innerHTML = 'That didn’t send. Please email <a href="mailto:support@thabtech.com">support@thabtech.com</a> or call <a href="tel:+18667556007">866 755 6007</a>.';
       }).then(function () {

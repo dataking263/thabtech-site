@@ -605,12 +605,8 @@ html[data-theme="light"] .band::after { opacity: .8; }
   color: var(--text); background: rgba(209, 99, 167, .10);
   border-color: rgba(209, 99, 167, .40);
 }
-/* honeypot: must stay reachable to bots but invisible and unfocusable to people */
-.hp {
-  position: absolute !important; width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
-}
+/* honeypot: present in the markup for bots, fully removed for people */
+.hp { display: none !important; }
 .form button[disabled] { opacity: .55; cursor: progress; }
 
 /* ============================================================ CTA */
