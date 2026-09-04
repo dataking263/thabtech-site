@@ -594,7 +594,24 @@ html[data-theme="light"] .band::after { opacity: .8; }
   font-size: .8125rem; color: var(--text-3);
   padding: .85rem 1rem; border-radius: 10px;
   background: var(--ember-soft); border: 1px solid var(--line-glow);
+  transition: color .2s ease, background .2s ease, border-color .2s ease;
 }
+.note a { color: var(--ember); text-underline-offset: 3px; }
+.note--ok {
+  color: var(--text); background: rgba(109, 170, 69, .10);
+  border-color: rgba(109, 170, 69, .38);
+}
+.note--err {
+  color: var(--text); background: rgba(209, 99, 167, .10);
+  border-color: rgba(209, 99, 167, .40);
+}
+/* honeypot: must stay reachable to bots but invisible and unfocusable to people */
+.hp {
+  position: absolute !important; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.form button[disabled] { opacity: .55; cursor: progress; }
 
 /* ============================================================ CTA */
 .cta { text-align: center; }

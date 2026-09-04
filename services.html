@@ -259,6 +259,51 @@
       });
     });
   }
+
+  /* contact form: async submit, inline status, no page navigation.
+     Falls back to a normal POST if fetch is unavailable. */
+  var cf = document.getElementById('cform');
+  if (cf && window.fetch) {
+    var note = document.getElementById('fnote');
+    var btn = cf.querySelector('button[type=submit]');
+    var idle = note ? note.textContent : '';
+    cf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!cf.checkValidity()) {
+        cf.reportValidity();
+        return;
+      }
+      note.className = 'note';
+      note.textContent = 'Sending…';
+      btn.disabled = true;
+      var fd = new FormData(cf);
+      var payload = {};
+      fd.forEach(function (v, k) { payload[k] = v; });
+      fetch(cf.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, d: d }; });
+      }).then(function (res) {
+        if (res.ok && res.d && res.d.success) {
+          cf.reset();
+          note.className = 'note note--ok';
+          note.textContent = 'Thank you — your message is in. You’ll hear back from a person, normally within one business day.';
+        } else {
+          throw new Error((res.d && res.d.message) || 'send failed');
+        }
+      }).catch(function () {
+        note.className = 'note note--err';
+        note.innerHTML = 'That didn’t send. Please email <a href="mailto:support@thabtech.com">support@thabtech.com</a> or call <a href="tel:+18667556007">866 755 6007</a>.';
+      }).then(function () {
+        btn.disabled = false;
+        setTimeout(function () {
+          if (note.className === 'note note--ok') { note.className = 'note'; note.textContent = idle; }
+        }, 12000);
+      });
+    });
+  }
 })();
 </script>
 </body>

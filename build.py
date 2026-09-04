@@ -16,6 +16,10 @@ FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
            "%3Cpath d='M4 6h20M14 6v17' stroke='%23F2F1EF' stroke-width='2.6'/%3E"
            "%3Cpath d='M18.5 14h6' stroke='%23FF8A3D' stroke-width='2.6'/%3E%3C/svg%3E")
 
+# Web3Forms public access key. Safe to ship in HTML by design — it only
+# authorises delivery to the address registered with Web3Forms.
+FORM_KEY = "b04ff402-beef-4e8c-a446-a04b5f6819b1"
+
 ARROW = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
 NAV = [("index.html", "Home"), ("services.html", "Consulting"),
@@ -221,6 +225,51 @@ FOOTER = '''</main>
         var r = c.getBoundingClientRect();
         c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
         c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
+  }
+
+  /* contact form: async submit, inline status, no page navigation.
+     Falls back to a normal POST if fetch is unavailable. */
+  var cf = document.getElementById('cform');
+  if (cf && window.fetch) {
+    var note = document.getElementById('fnote');
+    var btn = cf.querySelector('button[type=submit]');
+    var idle = note ? note.textContent : '';
+    cf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!cf.checkValidity()) {
+        cf.reportValidity();
+        return;
+      }
+      note.className = 'note';
+      note.textContent = 'Sending\u2026';
+      btn.disabled = true;
+      var fd = new FormData(cf);
+      var payload = {};
+      fd.forEach(function (v, k) { payload[k] = v; });
+      fetch(cf.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, d: d }; });
+      }).then(function (res) {
+        if (res.ok && res.d && res.d.success) {
+          cf.reset();
+          note.className = 'note note--ok';
+          note.textContent = 'Thank you \u2014 your message is in. You\u2019ll hear back from a person, normally within one business day.';
+        } else {
+          throw new Error((res.d && res.d.message) || 'send failed');
+        }
+      }).catch(function () {
+        note.className = 'note note--err';
+        note.innerHTML = 'That didn\u2019t send. Please email <a href="mailto:support@thabtech.com">support@thabtech.com</a> or call <a href="tel:+18667556007">866\u2009755\u20096007</a>.';
+      }).then(function () {
+        btn.disabled = false;
+        setTimeout(function () {
+          if (note.className === 'note note--ok') { note.className = 'note'; note.textContent = idle; }
+        }, 12000);
       });
     });
   }
@@ -916,7 +965,11 @@ def contact():
     <div>
       <span class="eyebrow">Send a message</span>
       <h2 style="font-size:var(--t-h3);margin-bottom:1.5rem">Tell us what you need</h2>
-      <form class="form" onsubmit="event.preventDefault();this.querySelector('.note').textContent='This is a design mockup — the live form will deliver to support@thabtech.com.';">
+      <form class="form" id="cform" action="https://api.web3forms.com/submit" method="POST" novalidate>
+        <input type="hidden" name="access_key" value="{FORM_KEY}">
+        <input type="hidden" name="subject" value="New enquiry from thabtech.com">
+        <input type="hidden" name="from_name" value="ThabTech website">
+        <input type="checkbox" name="botcheck" class="hp" tabindex="-1" aria-hidden="true">
         <div class="f-row">
           <label class="field-l"><span>Name</span><input type="text" name="name" autocomplete="name" required></label>
           <label class="field-l"><span>Company</span><input type="text" name="company" autocomplete="organization"></label>
@@ -928,7 +981,7 @@ def contact():
         <label class="field-l"><span>What do you need?</span><select name="topic">{options}</select></label>
         <label class="field-l"><span>Details</span><textarea name="message" placeholder="What&rsquo;s the situation, what have you already tried, and what does a good outcome look like?" required></textarea></label>
         <button class="btn btn--primary" type="submit" style="justify-self:start">Send message {ARROW}</button>
-        <p class="note">Mockup form &mdash; on the live site this delivers to support@thabtech.com.</p>
+        <p class="note" id="fnote" role="status" aria-live="polite">Goes straight to support@thabtech.com. Normally answered within one business day.</p>
       </form>
     </div>
     <div>
